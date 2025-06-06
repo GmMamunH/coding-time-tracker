@@ -35,71 +35,107 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
+// src/extension.ts
 const vscode = __importStar(require("vscode"));
-class CodingTimeTracker {
-    constructor() {
-        this.codingSeconds = 0;
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        this.statusBarItem.text = `$(clock) Coding Time: 0s`;
-        // Text color দিয়ে ব্যাকগ্রাউন্ডের মতো ইফেক্ট দিতে পারি (উদাহরণ: লাল)
-        this.statusBarItem.color = "#FFFFFF"; // Text color (সাদা)
-        // Note: VS Code doesn’t support direct background color for status bar items.
-        // তোমার থিম অনুযায়ী রং পরিবর্তন করতে পারো।
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
-        // এই লাইন VS Code 1.64+ থেকে ব্যাকগ্রাউন্ড কাস্টমাইজেশন সাপোর্ট করে, চাইলে ব্যবহার করো।
-        this.statusBarItem.show();
-        vscode.workspace.onDidChangeTextDocument(() => this.onUserActivity());
-    }
-    onUserActivity() {
-        if (!this.timer) {
-            this.startTimer();
-        }
-        this.resetInactivityTimeout();
-    }
-    startTimer() {
-        this.timer = setInterval(() => {
-            this.codingSeconds++;
-            this.statusBarItem.text = `$(clock) Coding Time: ${this.formatTime(this.codingSeconds)}`;
-        }, 1000);
-    }
-    resetInactivityTimeout() {
-        if (this.inactivityTimeout) {
-            clearTimeout(this.inactivityTimeout);
-        }
-        this.inactivityTimeout = setTimeout(() => {
-            this.stopTimer();
-        }, 60000); // 60 seconds inactivity
-    }
-    stopTimer() {
-        if (this.timer) {
-            clearInterval(this.timer);
-            this.timer = undefined;
-        }
-    }
-    dispose() {
-        this.statusBarItem.dispose();
-        this.stopTimer();
-        if (this.inactivityTimeout) {
-            clearTimeout(this.inactivityTimeout);
-        }
-    }
-    formatTime(seconds) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        if (h > 0)
-            return `${h}h ${m}m ${s}s`;
-        if (m > 0)
-            return `${m}m ${s}s`;
-        return `${s}s`;
-    }
-    // Optional: Getters for external use (e.g., commands)
-    getCodingSeconds() {
-        return this.codingSeconds;
-    }
-}
+let codingSeconds = 0;
+let timer;
+let inactivityTimeout;
+let lastActivityTime = Date.now();
+let today = new Date().toDateString();
+const idleThresholdKey = "codingTimeTracker.idleThreshold";
+const notificationShownKey = "codingTimeTracker.notificationShown";
 function activate(context) {
-    const tracker = new CodingTimeTracker();
-    context.subscriptions.push(tracker);
+    const config = vscode.workspace.getConfiguration();
+    const idleThreshold = config.get(idleThresholdKey, 60); // in seconds
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+    statusBarItem.text = `$(clock) Coding Time: 0s`;
+    statusBarItem.show();
+    const updateStatusBar = () => {
+        statusBarItem.text = `$(clock) Coding Time: ${formatTime(codingSeconds)}`;
+    };
+    const resetDailyIfNeeded = () => {
+        const currentDay = new Date().toDateString();
+        if (currentDay !== today) {
+            codingSeconds = 0;
+            today = currentDay;
+        }
+    };
+    const checkInactivity = () => {
+        const now = Date.now();
+        if (now - lastActivityTime >= idleThreshold * 1000) {
+            stopTimer();
+        }
+    };
+    const startTimer = () => {
+        if (!timer) {
+            timer = setInterval(() => {
+                resetDailyIfNeeded();
+                codingSeconds++;
+                updateStatusBar();
+                if (codingSeconds % 3600 === 0 &&
+                    !context.globalState.get(notificationShownKey)) {
+                    vscode.window.showInformationMessage("🎉 You've coded for 1 hour today!");
+                    context.globalState.update(notificationShownKey, true);
+                }
+            }, 1000);
+        }
+    };
+    const stopTimer = () => {
+        if (timer) {
+            clearInterval(timer);
+            timer = undefined;
+        }
+    };
+    const handleActivity = () => {
+        lastActivityTime = Date.now();
+        context.globalState.update(notificationShownKey, false);
+        startTimer();
+        if (inactivityTimeout) {
+            clearTimeout(inactivityTimeout);
+        }
+        inactivityTimeout = setTimeout(checkInactivity, idleThreshold * 1000);
+    };
+    vscode.workspace.onDidChangeTextDocument(handleActivity);
+    // Register a command to show sidebar report
+    const provider = new ReportViewProvider(context);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider("codingTimeTracker.reportView", provider));
+    context.subscriptions.push(statusBarItem);
+    context.subscriptions.push({
+        dispose() {
+            stopTimer();
+            if (inactivityTimeout)
+                clearTimeout(inactivityTimeout);
+        },
+    });
+}
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return [h > 0 ? `${h}h` : "", m > 0 ? `${m}m` : "", `${s}s`]
+        .filter(Boolean)
+        .join(" ");
 }
 function deactivate() { }
+class ReportViewProvider {
+    constructor(context) {
+        this.context = context;
+    }
+    resolveWebviewView(webviewView, context, token) {
+        webviewView.webview.options = {
+            enableScripts: true,
+        };
+        webviewView.webview.html = this.getHtml();
+    }
+    getHtml() {
+        return `
+      <html>
+      <body>
+        <h2>📊 Coding Time Report</h2>
+        <p>Weekly and monthly views will be available in the next update.</p>
+      </body>
+      </html>
+    `;
+    }
+}

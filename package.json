@@ -2,7 +2,7 @@
   "name": "coding-time-tracker-pro",
   "displayName": "Coding Time Tracker Pro",
   "description": "Track how long you actively code each day (excluding idle time).",
-  "version": "2.0.3",
+  "version": "3.0.0",
   "publisher": "rsm-developer",
   "engines": {
     "vscode": "^1.85.0"

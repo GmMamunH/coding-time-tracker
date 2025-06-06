@@ -1,32 +1,24 @@
-# Coding Time Tracker
+# ⏱️ Coding Time Tracker
 
-🕒 A simple VS Code extension to track your **active coding time** (excluding idle time) each day.
+A simple yet effective VS Code extension that tracks how much time you spend coding every day!
 
-## Features
+## ✨ Features
 
-- ⏱️ Tracks coding time in real-time
-- 💤 Ignores idle time
-- 📆 Resets daily
-- 🖥️ Shows total time coded today
+- ⏱️ **Tracks coding time in real-time**
+- 💤 **Ignores idle time** (default 60 seconds, configurable)
+- 📆 **Resets daily**
+- 🔔 **Notifies after 1 hour of coding**
+- 📊 **Sidebar Panel** for upcoming visual weekly/monthly stats
 
-## Usage
-
-The extension runs automatically in the background.  
-To view your coding time:  
-→ `Ctrl + Shift + P` → `Coding Time Tracker: Show Time`
-## 📸 Screenshots
+## 📸 Status Bar UI
 ![Preview](image.png)
+Displays your total coding time on the VS Code status bar with a background color to help you stay aware.
 
-## Extension Settings
+## ⚙️ Configuration
 
-This extension has no configurable settings (yet).
+You can change the idle timeout threshold from your VS Code settings:
 
-## Release Notes
-
-### 2.0.3
-
-- Initial release
-
----
-
-Built by [rsm-developer](https://github.com/gmmamunh)
+```json
+{
+  "codingTimeTracker.idleThreshold": 90
+}
