@@ -1,0 +1,43 @@
+{
+  "name": "coding-time-tracker-pro",
+  "displayName": "Coding Time Tracker Pro",
+  "description": "Track how long you actively code each day (excluding idle time).",
+  "version": "2.0.3",
+  "publisher": "rsm-developer",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:python"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "coding-time.showTime",
+        "title": "Coding Time Tracker: Show Time"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gmmamunh/coding-time-tracker.git"
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.15.30",
+    "@types/vscode": "^1.85.0",
+    "mocha": "^11.5.0",
+    "typescript": "^5.4.0"
+  }
+}
