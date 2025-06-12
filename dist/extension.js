@@ -46,7 +46,7 @@ const idleThresholdKey = "codingTimeTracker.idleThreshold";
 const notificationShownKey = "codingTimeTracker.notificationShown";
 function activate(context) {
     const config = vscode.workspace.getConfiguration();
-    const idleThreshold = config.get(idleThresholdKey, 60); // in seconds
+    const idleThreshold = config.get(idleThresholdKey, 300); // in seconds
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
     statusBarItem.text = `$(clock) Coding Time: 0s`;
